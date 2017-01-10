@@ -1,6 +1,7 @@
 'use strict';
 const config = require('./config');
 const Twit = require('twit');
+const request = require('request');
 
 
 const T = new Twit({
@@ -28,13 +29,22 @@ keywordStream.on('tweet', function(data){
 	T.post('friendships/create', param, function(err, data, resp){});
 });
 
-// Reply to mentions
+const record = {};
+
+// Reply to mentions with conversation API
 keywordStream.on('tweet', function(data){
 	const textToString = data.text.toString();
 	const target = data.user.screen_name.toString();
 	if (textToString.includes(config.userName) && data.source.id_str !== config.ownerID) {
-		T.post('statuses/update', {status: '@' + target + ' ' + 'This is a bot!!'},  function(error, tweet, response){
-		  console.log(tweet);  // Tweet body.
+		record.utt = textToString;
+		record.nickname = target;
+		const param = { body: JSON.stringify(record)};
+		request.post(config.url + config.API_key, param, function(err, res, data) {
+			const body = JSON.parse(data);
+			record.context = body.context;
+			record.mode = body.mode;
+			T.post('statuses/update', {status: '@' + target + ' ' + body.utt},  function(error, tweet, response){
+		});
 		});
 	};
 });
