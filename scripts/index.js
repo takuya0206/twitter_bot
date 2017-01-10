@@ -2,7 +2,17 @@
 const config = require('./config');
 const Twit = require('twit');
 const request = require('request');
+const fs = require('fs');
 
+
+let log = new Map();
+const fileName = './scripts/log.json';
+try {
+	const update = fs.readFileSync(fileName, 'utf8');
+	log = new Map(JSON.parse(update));
+} catch (ignore) {
+	console.log('There is no prior conversation.');
+};
 
 const T = new Twit({
 	consumer_key:         config.key,
@@ -18,9 +28,8 @@ const keywordStream = T.stream('statuses/filter', { track: ['learn Japanese', 'l
 // Follow Back
 userStream.on('follow', function(data) {
 	const param = { user_id: data.source.id_str };
-  // Avoid event made on my own
-  if (data.source.id_str === config.ownerID) return;
-  T.post('friendships/create', param, function(err, data, resp){});
+	if (data.source.id_str === config.ownerID) return;
+	T.post('friendships/create', param, function(err, data, resp){});
 });
 
 // Follow Based on Keywords
@@ -29,22 +38,21 @@ keywordStream.on('tweet', function(data){
 	T.post('friendships/create', param, function(err, data, resp){});
 });
 
+// Reply with conversation API
 const record = {};
-
-// Reply to mentions with conversation API
 keywordStream.on('tweet', function(data){
 	const textToString = data.text.toString();
 	const target = data.user.screen_name.toString();
 	if (textToString.includes(config.userName) && data.source.id_str !== config.ownerID) {
 		record.utt = textToString;
 		record.nickname = target;
+		if (log.has(target)){record.context = log.get(target)};
 		const param = { body: JSON.stringify(record)};
 		request.post(config.url + config.API_key, param, function(err, res, data) {
 			const body = JSON.parse(data);
-			record.context = body.context;
-			record.mode = body.mode;
-			T.post('statuses/update', {status: '@' + target + ' ' + body.utt},  function(error, tweet, response){
-		});
+			T.post('statuses/update', {status: '@' + target + ' ' + body.utt},  function(error, tweet, response){});
+			log.set(target, body.context);
+			save();
 		});
 	};
 });
