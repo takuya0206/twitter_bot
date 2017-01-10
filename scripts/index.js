@@ -11,3 +11,12 @@ const T = new Twit({
 	timeout_ms:           60*1000
 });
 
+const userstream = T.stream('user')
+
+// Follow Back
+userstream.on('follow', function(data) {
+  const param = { user_id: data.source.id_str }
+  // Avoid event made on my own
+  if (data.source.id_str === config.ownerID) return;
+  T.post('friendships/create', param, function(err, data, resp){});
+});
