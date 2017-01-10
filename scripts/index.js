@@ -11,12 +11,21 @@ const T = new Twit({
 	timeout_ms:           60*1000
 });
 
-const userstream = T.stream('user')
+const userStream = T.stream('user');
+const keywordStream = T.stream('statuses/filter', { track: ['learn Japanese', 'learning Japanese', 'Japanese lessons', 'Japanese grammar', 'study Japanese'] });
 
 // Follow Back
-userstream.on('follow', function(data) {
-  const param = { user_id: data.source.id_str }
+userStream.on('follow', function(data) {
+	const param = { user_id: data.source.id_str };
   // Avoid event made on my own
   if (data.source.id_str === config.ownerID) return;
   T.post('friendships/create', param, function(err, data, resp){});
 });
+
+// Follow Based on Keywords
+keywordStream.on('tweet', function(data){
+	const param = { user_id: data.user.id_str };
+	T.post('friendships/create', param, function(err, data, resp){});
+});
+		
+		
