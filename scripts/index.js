@@ -39,7 +39,9 @@ keywordStream.on('tweet', function(data){
 });
 
 // Reply with conversation API
+function save() {fs.writeFileSync(fileName, JSON.stringify(Array.from(log)), 'utf8');}
 const record = {};
+
 keywordStream.on('tweet', function(data){
 	const textToString = data.text.toString();
 	const target = data.user.screen_name.toString();
@@ -50,7 +52,7 @@ keywordStream.on('tweet', function(data){
 		const param = { body: JSON.stringify(record)};
 		request.post(config.url + config.API_key, param, function(err, res, data) {
 			const body = JSON.parse(data);
-			T.post('statuses/update', {status: '@' + target + ' ' + body.utt},  function(error, tweet, response){});
+			T.post('statuses/update', {status: '@' + target + ' ' + body.utt});
 			log.set(target, body.context);
 			save();
 		});
